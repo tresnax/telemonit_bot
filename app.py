@@ -1,4 +1,3 @@
-import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
 from dotenv import load_dotenv
@@ -14,18 +13,20 @@ import re
 
 load_dotenv()
 
+# Add env for telegram_bot
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = int(os.getenv('TELEGRAM_CHAT_ID'))
 
 
+# Add log setting 
 logging.basicConfig(filename='TeleMonit_bot.log', 
                     level=logging.WARNING, 
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%H:%M:%S %d-%m-%Y')
 
 
+# Filter escape character 
 def escape_markdown(text):
-    # Daftar karakter yang perlu di-*escape* dalam Markdown
     escape_chars = r'_*[]()~`>#+-=|{}.!'
     return re.sub(r'([{}])'.format(re.escape(escape_chars)), r'\\\1', text)
 
@@ -150,7 +151,7 @@ def parse_monit(xml_data):
         logging.error(f"Error parsing XML data: {e}")
 
 
-# Data Input =======================================================================
+# Command Input =======================================================================
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.chat_id != TELEGRAM_CHAT_ID:
         print(f"{update.message.chat_id}")

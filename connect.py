@@ -1,7 +1,8 @@
 import sqlite3
 
+
 def db_connection():
-    conn = sqlite3.connect('telemonit.db')
+    conn = sqlite3.connect('telemonit_bot.db')
 
     return conn
 
