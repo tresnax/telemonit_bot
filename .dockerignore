@@ -1,0 +1,8 @@
+.gitignore
+.git/
+__pycache__/
+telemonit.db
+TeleMonit.log
+.env
+Dockerfile
+docker-compose.yaml

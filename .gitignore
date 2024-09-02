@@ -1,0 +1,6 @@
+__pycache__
+telemonit.db
+TeleMonit.log
+.env
+docker-compose.yaml
+.dockerignore
