@@ -154,14 +154,22 @@ def parse_monit(xml_data):
 # Command Input =======================================================================
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.chat_id != TELEGRAM_CHAT_ID:
-        print(f"{update.message.chat_id}")
-        await update.message.reply_text(f"Bot ini private {update.message.chat_id}")
+        messages = f"*Welcome to TeleMonit_bot*\n"
+        messages += "A project Telegram integrated tools for M/Monit, with our tools you can query event monitoring from M/Monit and reported to Telegram, helping your productivity with alert event if server have a trouble.\n\n"
+        messages += "*Feature*\n"
+        messages += "- Realtime monitoring (interval set)\n"
+        messages += "- Multiple server monitor\n"
+        messages += "- Monitoring item (Service running, uptime, CPU usage, memory usage)\n"
+        messages += "- Alert (Timeout, server down, high CPU, high memory)\n\n"
+        messages += "More in Github : [TeleMonit_bot](https://github.com/tresnax/telemonit_bot.git)"
+        await update.message.reply_text(messages, parse_mode='Markdown')
     else:
         messages = f"*Welcome to TeleMonit_bot*\n"
         messages += "Integrate your M/Monit to Telegram Alert System\n\n"
         messages += "/list\\_server - List your server list\n"
         messages += "/add\\_server - Add new server for alert\n"
-        messages += "/del\\_server - Delete your server list\n\n"
+        messages += "/del\\_server - Delete your server list\n"
+        messages += "/bot\\_setting - TeleMonit Setting\n\n"
         messages += "Enjoy to your monitoring"
 
         await update.message.reply_text(messages, parse_mode='Markdown')
@@ -278,7 +286,7 @@ async def cmd_check_server(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                                     uptime_formatted = f"{days} days {hours} hours, {minutes} minutes"
 
 
-                                    message = f"SERVER : *{name}*\n\n"
+                                    message = f"SERVER : *{list[3]}*\n\n"
                                     message += "STATUS :\n"
                                     message += f"⏳ *Uptime* : {uptime_formatted}\n"
                                     message += f"🖥 *CPU Usage* : {cpu_usage:.2f}%\n"
@@ -452,7 +460,7 @@ if __name__ == '__main__':
     print(ascii_art)
     print(separator)
 
-    print("Starting TelegramBot ...")
+    print("Starting TeleMonit_bot ...")
     
     monitor_thread = multiprocessing.Process(target=main)
     monitor_thread.start()
