@@ -1,14 +1,14 @@
 # TeleMonit_bot
 
-A project Telegram integrated tools for M/Monit, with our tools you can query event monitoring from M/Monit and reported to Telegram, helping your productivity with alert event if server hape a trouble.
+A telegram bot project integrated with Monit, you can monitor the system easily and get an alarm if there is a problem on the server directly with the telegram bot.
 
 ## Feature
 
-- Realtime monitoring (interval set)
-- Multiple server monitor
-- Monitoring item (Service running, uptime, CPU usage, memory usage)
+- Realtime monitoring
+- Multiple Server
+- Monitoring Event (Service running, uptime, CPU usage, memory usage)
 - Alert (Timeout, server down, high CPU, high memory)
-
+- Settings (interval, cpu and memory usage)
 
 ## How to Install
 
@@ -20,6 +20,13 @@ git pull https://github.com/tresnax/telemonit_bot.git | cd telemonit_bot
 TELEGRAM_BOT_TOKEN=yourbottoken
 TELEGRAM_CHAT_ID=yourchatid
 
+# Create venv
+python venv .venv
+source .venv/bin/activate
+
+# Install Dependency
+pip install -r requirements.txt
+
 # Create Database
 python createdb.py
 
@@ -27,12 +34,20 @@ python createdb.py
 nohup python app.py &
 ```
 
-
-### With Docker
+## Install with Docker
 
 ```bash
+# Create Volume
+docker volume create telemonit_bot
+
+# Run Docker
 docker run -d --name telemonit_bot \
 -e TELEGRAM_BOT_TOKEN=yourtokenbot \
 -e TELEGRAM_CHAT_ID=yourchatid \
+-v telemonit_bit:/app \
 tresnax/telemonit_bot:latest
 ```
+
+## Screenshoots
+
+![Screenshot from 2024-09-04 16-28-11.png](img/Screenshot_from_2024-09-04_16-28-11.png) ![Screenshot from 2024-09-04 16-27-14.png](img/Screenshot_from_2024-09-04_16-27-14.png) ![Screenshot from 2024-09-04 16-27-50.png](img/Screenshot_from_2024-09-04_16-27-50.png)

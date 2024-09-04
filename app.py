@@ -155,7 +155,7 @@ def parse_monit(xml_data):
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.chat_id != TELEGRAM_CHAT_ID:
         messages = f"*Welcome to TeleMonit_bot*\n"
-        messages += "A project Telegram integrated tools for M/Monit, with our tools you can query event monitoring from M/Monit and reported to Telegram, helping your productivity with alert event if server have a trouble.\n\n"
+        messages += "A project Telegram integrated tools for Monit, with our tools you can query event monitoring from Monit and reported to Telegram, helping your productivity with alert event if server have a trouble.\n\n"
         messages += "*Feature*\n"
         messages += "- Realtime monitoring (interval set)\n"
         messages += "- Multiple server monitor\n"
@@ -165,7 +165,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(messages, parse_mode='Markdown')
     else:
         messages = f"*Welcome to TeleMonit_bot*\n"
-        messages += "Integrate your M/Monit to Telegram Alert System\n\n"
+        messages += "Integrate your Monit to Telegram Alert System\n\n"
         messages += "/list\\_server - List your server list\n"
         messages += "/add\\_server - Add new server for alert\n"
         messages += "/del\\_server - Delete your server list\n"
@@ -447,14 +447,15 @@ def main():
 
 if __name__ == '__main__':
     separator = "-" * 50
-    ascii_art = """
-     _       _                            _ _   
-    | |_ ___| | ___ _ __ ___   ___  _ __ (_) |_ 
-    | __/ _ \\ |/ _ \\ '_ ` _ \\ / _ \\| '_ \\| | __|
-    | ||  __/ |  __/ | | | | | (_) | | | | | |_ 
-     \\__\\___|_|\\___|_| |_| |_|\\___/|_| |_|_|\\__|
-                                                
-    """                                     
+    ascii_art = r"""
+  ______     __     __  ___            _ __       ____        __ 
+ /_  __/__  / /__  /  |/  /___  ____  (_) /_     / __ )____  / /_
+  / / / _ \/ / _ \/ /|_/ / __ \/ __ \/ / __/    / __  / __ \/ __/
+ / / /  __/ /  __/ /  / / /_/ / / / / / /_     / /_/ / /_/ / /_  
+/_/  \___/_/\___/_/  /_/\____/_/ /_/_/\__/____/_____/\____/\__/  
+                                        /_____/                  
+"""
+                                 
 
     print(separator)
     print(ascii_art)
