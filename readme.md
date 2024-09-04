@@ -49,5 +49,6 @@ tresnax/telemonit_bot:latest
 ```
 
 ## Screenshoots
-
-![Screenshot from 2024-09-04 16-28-11.png](img/Screenshot_from_2024-09-04_16-28-11.png) ![Screenshot from 2024-09-04 16-27-14.png](img/Screenshot_from_2024-09-04_16-27-14.png) ![Screenshot from 2024-09-04 16-27-50.png](img/Screenshot_from_2024-09-04_16-27-50.png)
+<img src="img/Screenshot_from_2024-09-04_16-28-11.png" alt="Screenshot" width="30%">
+<img src="img/Screenshot_from_2024-09-04_16-27-14.png" alt="Screenshot" width="30%">
+<img src="img/Screenshot_from_2024-09-04_16-27-50.png" alt="Screenshot" width="30%">
