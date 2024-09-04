@@ -6,3 +6,4 @@ TeleMonit_bot.log
 .env
 Dockerfile
 docker-compose.yaml
+img/
