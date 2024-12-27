@@ -40,6 +40,10 @@ def send_message(message: str) -> None:
         'parse_mode': 'Markdown'
     }
 
+    threads = connect.bot_setting()
+    if threads[4] != 0:
+        data['message_thread_id'] = threads[4]
+
     response = requests.post(url, data=data)
     if response.status_code != 200:
         logging.error(f"Failed to send message: {response.text}")
@@ -169,6 +173,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         messages += "/list\\_server - List your server list\n"
         messages += "/add\\_server - Add new server for alert\n"
         messages += "/del\\_server - Delete your server list\n"
+        messages += "/check\\_server - Check your server status\n"
+        messages += "/add\\_topics - Add Alert to topics\n"
+        messages += "/del\\_topics - Delete Alert from topics\n"
         messages += "/bot\\_setting - TeleMonit Setting\n\n"
         messages += "Enjoy to your monitoring"
 
@@ -213,6 +220,32 @@ async def cmd_del_server(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text("Select to Delete", reply_markup=reply_markup, parse_mode='Markdown')
         else:
             await update.message.reply_text("No server in lists !")
+
+
+async def cmd_add_thread(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == TELEGRAM_CHAT_ID:
+
+        setting = connect.bot_setting()       
+        topics = update.message.message_thread_id
+
+        if setting[4] != 0:
+            await update.message.reply_text(f"Topics already registered in other chat !")
+        else:
+            connect.set_setting("threads_id", topics)
+            await update.message.reply_text(f"Topic succesfull add to TeleMonit_bot")
+
+
+async def cmd_del_thread(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == TELEGRAM_CHAT_ID:
+
+        setting = connect.bot_setting()
+        topics = update.message.message_thread_id
+
+        if setting[4] == 0:
+            await update.message.reply_text(f"Topics not registered in any chat !")
+        else:
+            connect.set_setting("threads_id", "0")
+            await update.message.reply_text(f"Topic succesfull delete from TeleMonit_bot")
 
 
 async def cmd_list_server(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -377,12 +410,19 @@ def detail_service(host_id: int) -> str:
 async def cmd_bot_setting(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.chat_id == TELEGRAM_CHAT_ID:
         setting = connect.bot_setting()
+        topics_status = "Topics not Registered"
 
+        if setting[4] != 0 and setting[4] == update.message.message_thread_id:
+            topics_status = "Topics Registered Here"
+        elif setting[4] != 0 and setting[4] != update.message.message_thread_id:
+            topics_status = "Topics Registered in other chat"
+        
         message = "*Global TeleMonit_bot Setting* \n"
         message += f"⏳ Interval : {setting[1]} Second\n\n"
         message += "*Alert Parameter Setting*\n"
         message += f"🖥 CPU >= {setting[2]} %\n"
         message += f"💾 Memory >= {setting[3]} %\n\n"
+        message += f"*Alert in Topics :* {topics_status}\n\n"
         message += "*Note :* you can change this setting\nUsage : /set\\_setting <name> <value>\n"
         message += "Example : /set\\_setting interval 60\n"
         message += "Name : cpu, memory, interval"
@@ -401,10 +441,10 @@ async def cmd_set_setting(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         values = int(context.args[1])
 
         if name_set not in ("interval", "cpu", "memory"):
-            await update.message.reply_text("Kamu hanya dapat mengubah interval, cpu dan memory \\!")
+            await update.message.reply_text("You can only change interval, cpu, and memory \\!")
         else:
             connect.set_setting(name_set, values)
-            await update.message.reply_text(f"Parameter {name_set} berhasil diubah menjadi {values}")
+            await update.message.reply_text(f"Parameter {name_set} successfully changed to {values}")
 
 
 # Callback Handler ==================================================================
@@ -439,6 +479,8 @@ def main():
     application.add_handler(CommandHandler('check_server', cmd_check_server))
     application.add_handler(CommandHandler('bot_setting', cmd_bot_setting))
     application.add_handler(CommandHandler('set_setting', cmd_set_setting))
+    application.add_handler(CommandHandler('add_topics', cmd_add_thread))
+    application.add_handler(CommandHandler('del_topics', cmd_del_thread))
 
     application.add_handler(CallbackQueryHandler(button_callback))
 

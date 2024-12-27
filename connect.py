@@ -2,7 +2,7 @@ import sqlite3
 
 
 def db_connection():
-    conn = sqlite3.connect('telemonit_bot.db')
+    conn = sqlite3.connect('db/telemonit_bot.db')
 
     return conn
 
@@ -24,6 +24,26 @@ def del_server(id: int) -> None:
     cursor = conn.cursor()
 
     cursor.execute('DELETE FROM servers WHERE id=? ', (id, ))
+
+    conn.commit()
+    conn.close()
+
+
+def add_thread(thread_id: int) -> None:
+    conn = db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('INSERT INTO threads (threads_id) VALUES (?)', (thread_id, ))
+
+    conn.commit()
+    conn.close()
+
+
+def del_thread(thread_id: int) -> None:
+    conn = db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('DELETE FROM threads WHERE threads_id=?', (thread_id, ))
 
     conn.commit()
     conn.close()

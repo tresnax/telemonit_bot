@@ -2,6 +2,10 @@
 
 A telegram bot project integrated with Monit, you can monitor the system easily and get an alarm if there is a problem on the server directly with the telegram bot.
 
+## Whats New ✨
+
+See the detail of new update of Telemonit_bot in [Release](https://github.com/tresnax/telemonit_bot/releases)!
+
 ## Feature
 
 - Realtime monitoring
@@ -50,7 +54,7 @@ docker volume create telemonit_bot
 docker run -d --name telemonit_bot \
 -e TELEGRAM_BOT_TOKEN=yourtokenbot \
 -e TELEGRAM_CHAT_ID=yourchatid \
--v telemonit_bot:/app \
+-v telemonit_bot:/app/db \
 tresnax/telemonit_bot:latest
 ```
 
@@ -60,6 +64,8 @@ tresnax/telemonit_bot:latest
 - /add_server - add new server monitor
 - /list_server - view all servers
 - /del_server - delete server list
+- /add_topics - Add Alert to topics
+- /del_topics - Delete Alert from topics
 - /bot_setting - setting bot
 - /set_setting - set your interval setting
 
