@@ -1,6 +1,7 @@
 __pycache__
 telemonit_bot.db
-TeleMonit_bot.log
+logs/
+db/
 .env
 docker-compose.yaml
 .dockerignore

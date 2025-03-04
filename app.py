@@ -1,6 +1,8 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
+# from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 from dotenv import load_dotenv
+from datetime import datetime
 import xml.etree.ElementTree as ET
 import multiprocessing
 import requests
@@ -12,18 +14,20 @@ import os
 import re
 
 load_dotenv()
-
 # Add env for telegram_bot
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = int(os.getenv('TELEGRAM_CHAT_ID'))
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID"))
 
+# Log Setting ====================================================================
+os.makedirs("logs", exist_ok=True)
 
-# Add log setting 
-logging.basicConfig(filename='TeleMonit_bot.log', 
-                    level=logging.WARNING, 
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%H:%M:%S %d-%m-%Y')
-
+# Setup Main logger
+logging.basicConfig(
+    level=logging.INFO, 
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[logging.FileHandler("logs/TeleMonit_bot.log", encoding='utf-8')]
+)
 
 # Filter escape character 
 def escape_markdown(text):
@@ -83,17 +87,17 @@ def parse_monit(xml_data):
     try:
         id_server = xml_data[0].get("id_server","")
         if "timeout" in xml_data[0].get("status",""):
-            message = f"🔴 ALERT : *{xml_data[0].get('desc')}* 🔴\n"
-            message += "STATUS : TIEMOUT \n"
+            message = f"🔴 ALERT : *{xml_data[0].get('desc')}* 🔴\nSTATUS : TIEMOUT \n"
 
-            logging.error(message)
+            logging.error(f"[{id_server}] {xml_data[0].get('desc')} | Status : Timeout")
+            connect.log_alert(id_server, "Timeout", xml_data[0].get('desc'), "Timeout")
             send_message(message)
 
         elif "error" in xml_data[0].get("status",""):
-            message = f"🔴 ALERT : *{xml_data[0].get('url')}* 🔴\n"
-            message += f"STATUS : {xml_data[0].get('desc')} \n"
+            message = f"🔴 ALERT : *{xml_data[0].get('url')}* 🔴\nSTATUS : {xml_data[0].get('desc')} \n"
 
-            logging.error(message)
+            logging.error(f"[{id_server}] {xml_data[0].get('url')} | Status : {xml_data[0].get('desc')}")
+            connect.log_alert(id_server, "Error", xml_data[0].get('url'), xml_data[0].get('desc'))
             send_message(message)
 
         else:
@@ -103,12 +107,15 @@ def parse_monit(xml_data):
             services = root.findall('.//service')
 
             for service in services:
+                name = service.find('name').text
+                status = service.find('status').text
+                monitor = service.find('monitor').text
                 type = service.get('type')
 
                 if type == '5':
-                    name = service.find('name').text
-                    status = service.find('status').text
-                    monitor = service.find('monitor').text
+                    # name = service.find('name').text
+                    # status = service.find('status').text
+                    # monitor = service.find('monitor').text
                     memory_percent = float(service.find('.//system/memory/percent').text)
                     memory_kb = int(service.find('.//system/memory/kilobyte').text)
 
@@ -124,33 +131,83 @@ def parse_monit(xml_data):
 
                     if monitor == '1':
                         if status != '0':
-                            message = f"⚠️ ALERT {id_server} ALERT ⚠️\n"
-                            message += f"*Note :* Service *{name}* is down or in touble\n"
-                            message += f"*Status :* {status}\n"
+                            message = (
+                                f"⚠️ ALERT {id_server} ALERT ⚠️\n"
+                                f"*Note :* Service *{name}* is down or in touble\n"
+                                f"*Status :* {status}\n"
+                            )
 
-                            logging.warning(message)
+                            logging.warning(f"[{id_server}] Service {name} is down or in trouble | Status : {status}")
+                            connect.log_alert(id_server, "Issue", status, "Issue")
                             send_message(message)
 
-                        elif cpu_usage >= float(setting[2]):
-                            message = f"⚠️ ALERT {id_server} ALERT ⚠️\n"
-                            message += f"*Note :* CPU Usage is *{cpu_usage:.2f}* %\n"
-                            message += f"*Max Usage :* CPU >= {setting[2]} %\n"
-                            message += f"*Status :* High\n\n"
-                            message += "*Please check your servers !*"
+                        else:
+                            if cpu_usage >= float(setting[2]):
+                                message = (
+                                    f"⚠️ ALERT {id_server} ALERT ⚠️\n"
+                                    f"*Note :* CPU Usage is *{cpu_usage:.2f}* %\n"
+                                    f"*Max Usage :* CPU >= {setting[2]} %\n"
+                                    f"*Status :* High\n\n"
+                                    f"*Please check your servers !*"
+                                )
 
-                            logging.warning(message)
-                            send_message(message)
+                                logging.warning(f"[{id_server}] CPU Usage is {cpu_usage:.2f} % | Status : CPU >= {setting[2]} %")
+                                connect.log_alert(id_server, "Host", "CPU", f"{cpu_usage:.2f}", "High CPU")
+                                send_message(message)
+                            else:
+                                logging.info(f"[{id_server}] CPU Usage is {cpu_usage:.2f} % | Status : Normal CPU")
+                                connect.log_alert(id_server, "Host", "CPU", f"{cpu_usage:.2f}", "Normal CPU")
 
-                        elif memory_percent >= float(setting[3]):
-                            message = f"⚠️ ALERT {id_server} ALERT ⚠️\n"
-                            message += f"*Note :* Memory Usage is *{memory_percent:.2f}* % \\[{memory_gb:.2f}] GB\n"
-                            message += f"*Max Usage :* Memory >= {setting[3]} %\n"
-                            message += f"*Status :* High\n\n"
-                            message += "*Please check your servers !*"
+                            if memory_percent >= float(setting[3]):
+                                message = (
+                                    f"⚠️ ALERT {id_server} ALERT ⚠️\n"
+                                    f"*Note :* Memory Usage is *{memory_percent:.2f}* % \\[{memory_gb:.2f} GB]\n"
+                                    f"*Max Usage :* Memory >= {setting[3]} %\n"
+                                    f"*Status :* High\n\n"
+                                    f"*Please check your servers !*"
+                                )
 
-                            logging.warning(message)
-                            send_message(message)
+                                logging.warning(f"[{id_server}] Memory Usage is {memory_percent:.2f} % | Status : Memory >= {setting[3]} %")
+                                connect.log_alert(id_server, "Host", "Memory", f"{memory_percent:.2f}", "High Memory")
+                                send_message(message)
+                            else:
+                                logging.info(f"[{id_server}] Memory Usage is {memory_percent:.2f} % | Status : Normal Memory")
+                                connect.log_alert(id_server, "Host", "Memory", f"{memory_percent:.2f}", "Normal Memory")                    
 
+
+                if type == '3' and monitor == '1':
+                    if status == '0':
+                        uptime = int(service.find('uptime').text)
+                        status = int(service.find('status').text)
+                        memory_percent = service.find('.//memory/percenttotal').text
+                        memory_kb = int(service.find('.//memory/kilobytetotal').text)
+                        cpu_usage = float(service.find('.//cpu/percenttotal').text)
+
+                        days = uptime // (24 * 3600)
+                        remaining_seconds = uptime % (24 * 3600)
+                        hours = remaining_seconds // 3600
+                        minutes = (remaining_seconds % 3600) // 60
+                        memory_gb = memory_kb / (1024 ** 2)
+
+                        uptime_formatted = f"{days} days {hours} hours, {minutes} minutes"
+
+                        logging.info(f"[{server[3]}] CPU Usage {name} is {cpu_usage:.2f} % | Status : Online")
+                        connect.log_alert(id_server, name, "CPU", f"{cpu_usage:.2f}", "Online")
+
+                        logging.info(f"[{server[3]}] Memory Usage {name} is {memory_gb:.2f} % | Status : Online")
+                        connect.log_alert(id_server, name, "Memory", f"{memory_gb:.2f}", "Online")
+
+                    else:
+                        message = (
+                            f"SERVICE : *{name}*\n"
+                            f"🔴 *Status* : Issue\n"
+                            f"🗒 *Code* : {status}\n"
+                        )
+
+                        send_message(message)
+                        logging.error(f"[server[3]] Service {name} is down or in trouble | Status : {status}")
+                        connect.log_alert(id_server, name, "Service", status, "Issue")
+                    
     except ET.ParseError as e:
         logging.error(f"Error parsing XML data: {e}")
 
@@ -158,26 +215,30 @@ def parse_monit(xml_data):
 # Command Input =======================================================================
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.chat_id != TELEGRAM_CHAT_ID:
-        messages = f"*Welcome to TeleMonit_bot*\n"
-        messages += "A project Telegram integrated tools for Monit, with our tools you can query event monitoring from Monit and reported to Telegram, helping your productivity with alert event if server have a trouble.\n\n"
-        messages += "*Feature*\n"
-        messages += "- Realtime monitoring (interval set)\n"
-        messages += "- Multiple server monitor\n"
-        messages += "- Monitoring item (Service running, uptime, CPU usage, memory usage)\n"
-        messages += "- Alert (Timeout, server down, high CPU, high memory)\n\n"
-        messages += "More in Github : [TeleMonit_bot](https://github.com/tresnax/telemonit_bot.git)"
+        messages = (
+            f"*Welcome to TeleMonit_bot*\n"
+            f"A project Telegram integrated tools for Monit, with our tools you can query event monitoring from Monit and reported to Telegram, helping your productivity with alert event if server have a trouble.\n\n"
+            f"*Feature*\n"
+            f"- Realtime monitoring (interval set)\n"
+            f"- Multiple server monitor\n"
+            f"- Monitoring item (Service running, uptime, CPU usage, memory usage)\n"
+            f"- Alert (Timeout, server down, high CPU, high memory)\n\n"
+            f"More in Github : [TeleMonit_bot](https://github.com/tresnax/telemonit_bot.git)"
+        )
         await update.message.reply_text(messages, parse_mode='Markdown')
     else:
-        messages = f"*Welcome to TeleMonit_bot*\n"
-        messages += "Integrate your Monit to Telegram Alert System\n\n"
-        messages += "/list\\_server - List your server list\n"
-        messages += "/add\\_server - Add new server for alert\n"
-        messages += "/del\\_server - Delete your server list\n"
-        messages += "/check\\_server - Check your server status\n"
-        messages += "/add\\_topics - Add Alert to topics\n"
-        messages += "/del\\_topics - Delete Alert from topics\n"
-        messages += "/bot\\_setting - TeleMonit Setting\n\n"
-        messages += "Enjoy to your monitoring"
+        messages = (
+            f"*Welcome to TeleMonit_bot*\n"
+            f"Integrate your Monit to Telegram Alert System\n\n"
+            f"/list\\_server - List your servers\n"
+            f"/add\\_server - Add a new server\n"
+            f"/del\\_server - Delete a server\n"
+            f"/check\\_server - Check server status\n"
+            f"/add\\_topics - Add alert to topics\n"
+            f"/del\\_topics - Remove alert from topics\n"
+            f"/bot\\_setting - Bot settings\n\n"
+            f"Enjoy your monitoring"
+        )
 
         await update.message.reply_text(messages, parse_mode='Markdown')
 
@@ -271,17 +332,15 @@ async def cmd_check_server(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 xml_data = fetch_monit(list[1], list[2], list[3])
 
                 if "timeout" in xml_data[0].get("status",""):
-                    message = f"🔴 SERVER : *{list[3]}* 🔴\n"
-                    message += "STATUS : TIEMOUT \n"
+                    message = f"🔴 SERVER : *{list[3]}* 🔴\nSTATUS : TIEMOUT \n"
 
-                    logging.error(message)
+                    logging.error(f"[{list[3]}] {xml_data[0].get('desc')} | Status : Timeout")
                     await update.message.reply_text(message, parse_mode='Markdown')
 
                 elif "error" in xml_data[0].get("status",""):
-                    message = f"🔴 SERVER : *{list[3]}* 🔴\n"
-                    message += f"STATUS : {xml_data[0].get('desc')} \n"
+                    message = f"🔴 SERVER : *{list[3]}* 🔴\nSTATUS : {xml_data[0].get('desc')} \n"
 
-                    logging.error(message)
+                    logging.error(f"[{list[3]}] {xml_data[0].get('url')} | Status : {xml_data[0].get('desc')}")
                     await update.message.reply_text(message, parse_mode='Markdown')
                 
                 else:
@@ -319,18 +378,20 @@ async def cmd_check_server(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                                     uptime_formatted = f"{days} days {hours} hours, {minutes} minutes"
 
 
-                                    message = f"SERVER : *{list[3]}*\n\n"
-                                    message += "STATUS :\n"
-                                    message += f"⏳ *Uptime* : {uptime_formatted}\n"
-                                    message += f"🖥 *CPU Usage* : {cpu_usage:.2f}%\n"
-                                    message += f"💾 *Memory* : {memory_percent}% \\[{memory_gb:.2f} GB]\n"
+                                    message = (
+                                        f"SERVER : *{list[3]}*\n\n"
+                                        f"STATUS :\n"
+                                        f"⏳ *Uptime* : {uptime_formatted}\n"
+                                        f"🖥 *CPU Usage* : {cpu_usage:.2f}%\n"
+                                        f"💾 *Memory* : {memory_percent}% \\[{memory_gb:.2f} GB]\n"
+                                    )
 
                                     keyboard = [
                                         [InlineKeyboardButton("Detail", callback_data=f"detail|{list[0]}")]
                                     ]
                                     reply_markup = InlineKeyboardMarkup(keyboard)
 
-                                    logging.info(message)
+                                    logging.info(f"[{list[3]}] Server {hostname} is online")
                                     await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
 
 
@@ -361,44 +422,50 @@ def detail_service(host_id: int) -> str:
                             monitor = service.find('monitor').text
                             type = service.get('type')
 
-                            if type == '3':
-                                if monitor == '1':
-                                    if status == '0':
-                                        uptime = int(service.find('uptime').text)
-                                        status = int(service.find('status').text)
-                                        memory_percent = service.find('.//memory/percenttotal').text
-                                        memory_kb = int(service.find('.//memory/kilobytetotal').text)
-                                        cpu_usage = float(service.find('.//cpu/percenttotal').text)
+                            if type == '3' and monitor == '1':
+                                if status == '0':
+                                    uptime = int(service.find('uptime').text)
+                                    status = int(service.find('status').text)
+                                    memory_percent = service.find('.//memory/percenttotal').text
+                                    memory_kb = int(service.find('.//memory/kilobytetotal').text)
+                                    cpu_usage = float(service.find('.//cpu/percenttotal').text)
 
-                                        days = uptime // (24 * 3600)
-                                        remaining_seconds = uptime % (24 * 3600)
-                                        hours = remaining_seconds // 3600
-                                        minutes = (remaining_seconds % 3600) // 60
-                                        memory_gb = memory_kb / (1024 ** 2)
+                                    days = uptime // (24 * 3600)
+                                    remaining_seconds = uptime % (24 * 3600)
+                                    hours = remaining_seconds // 3600
+                                    minutes = (remaining_seconds % 3600) // 60
+                                    memory_gb = memory_kb / (1024 ** 2)
 
-                                        uptime_formatted = f"{days} days {hours} hours, {minutes} minutes"
+                                    uptime_formatted = f"{days} days {hours} hours, {minutes} minutes"
 
-                                        message = f"SERVICE : *{name}*\n"
-                                        message += f"🟢 *Status* :  Online\n"
-                                        message += f"⏳ *Uptime* : {uptime_formatted}\n"
-                                        message += f"🖥 *CPU Usage* : {cpu_usage:.2f}%\n"
-                                        message += f"💾 *Memory* : {memory_percent}% \\[{memory_gb:.2f} GB]\n"
-
-                                        detail_message.append(message)
-                                        logging.warning(message)
-                                    else:
-                                        message = f"SERVICE : *{name}*\n"
-                                        message += f"🔴 *Status* : Issue\n"
-                                        message += f"🗒 *Code* : {status}\n"
-
-                                        detail_message.append(message)
-                                        logging.error(message)
-                                else:
-                                    message = f"SERVICE : *{name}*\n"
-                                    message += f"⚪️ *Status* : Monitor Disabled\n"
+                                    message = (
+                                        f"SERVICE : *{name}*\n"
+                                        f"🟢 *Status* : Online\n"
+                                        f"⏳ *Uptime* : {uptime_formatted}\n"
+                                        f"🖥 *CPU Usage* : {cpu_usage:.2f}%\n"
+                                        f"💾 *Memory* : {memory_percent}% \\[{memory_gb:.2f} GB]\n"
+                                    )
 
                                     detail_message.append(message)
-                                    logging.info(message)
+                                    logging.warning(f"[{server[3]}] Service {name} is online")
+
+                                else:
+                                    message = (
+                                        f"SERVICE : *{name}*\n"
+                                        f"🔴 *Status* : Issue\n"
+                                        f"🗒 *Code* : {status}\n"
+                                    )
+
+                                    detail_message.append(message)
+                                    logging.error(f"[server[3]] Service {name} is down or in trouble | Status : {status}")
+                            else:
+                                message = (
+                                    f"SERVICE : *{name}*\n"
+                                    f"⚪️ *Status* : Monitor Disabled\n"
+                                )
+
+                                detail_message.append(message)
+                                logging.info(f"[{server[3]}] Service {name} is monitor disabled")
 
                         return detail_message
                     
@@ -417,15 +484,18 @@ async def cmd_bot_setting(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         elif setting[4] != 0 and setting[4] != update.message.message_thread_id:
             topics_status = "Topics Registered in other chat"
         
-        message = "*Global TeleMonit_bot Setting* \n"
-        message += f"⏳ Interval : {setting[1]} Second\n\n"
-        message += "*Alert Parameter Setting*\n"
-        message += f"🖥 CPU >= {setting[2]} %\n"
-        message += f"💾 Memory >= {setting[3]} %\n\n"
-        message += f"*Alert in Topics :* {topics_status}\n\n"
-        message += "*Note :* you can change this setting\nUsage : /set\\_setting <name> <value>\n"
-        message += "Example : /set\\_setting interval 60\n"
-        message += "Name : cpu, memory, interval"
+        message = (
+            f"*Global TeleMonit_bot Setting*\n"
+            f"⏳ Interval: {setting[1]} seconds\n\n"
+            f"*Alert Parameter Setting*\n"
+            f"🖥 CPU >= {setting[2]}%\n"
+            f"💾 Memory >= {setting[3]}%\n\n"
+            f"*Alert in Topics:* {topics_status}\n\n"
+            f"*Note:* You can change these settings\n"
+            f"Usage: /set\\_setting <name> <value>\n"
+            f"Example: /set\\_setting interval 60\n"
+            f"Name: cpu, memory, interval"
+        )
 
         await update.message.reply_text(message, parse_mode='Markdown')
 

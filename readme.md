@@ -31,7 +31,7 @@ TELEGRAM_BOT_TOKEN=yourbottoken
 TELEGRAM_CHAT_ID=yourchatid
 
 # Create venv (optional)
-python venv .venv
+python -m venv .venv
 source .venv/bin/activate
 
 # Install Dependency

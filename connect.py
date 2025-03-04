@@ -1,8 +1,15 @@
 import sqlite3
+from datetime import datetime
 
 
 def db_connection():
     conn = sqlite3.connect('db/telemonit_bot.db')
+
+    return conn
+
+
+def log_connection():
+    conn = sqlite3.connect('db/telemonit_log.db')
 
     return conn
 
@@ -78,5 +85,17 @@ def set_setting(name: str, value: int) -> None:
     sql = f"UPDATE bot_settings SET {name}=? WHERE id=?"
     cursor.execute(sql, (value, 1))
     
+    conn.commit()
+    conn.close()
+
+
+def log_alert(server_id, service, metric, value, status):
+    conn = log_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        INSERT INTO server_logs (timestamp, server_id, service, metric, value, status) VALUES (?, ?, ?, ?, ?, ?)
+    ''', (datetime.now(), server_id, service, metric, value, status))
+
     conn.commit()
     conn.close()

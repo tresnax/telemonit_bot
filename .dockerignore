@@ -1,9 +1,12 @@
 .gitignore
 .git/
 __pycache__/
+db/
+logs/
+img/
+
 telemonit_bot.db
 TeleMonit_bot.log
 .env
 Dockerfile
 docker-compose.yaml
-img/
